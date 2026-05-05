@@ -653,28 +653,62 @@ document.getElementById('loginForm').addEventListener('submit', function(e) {
 });
 
 // ===== SIGNUP =====
+// ===== SIGNUP =====
 document.getElementById('signupForm').addEventListener('submit', function(e) {
     e.preventDefault();
     clearAllErrors('signupForm');
+
     let valid = true;
+
     const name = document.getElementById('signupName').value.trim();
     const email = document.getElementById('signupEmail').value.trim();
     const password = document.getElementById('signupPassword').value.trim();
     const confirmPassword = document.getElementById('signupConfirmPassword').value.trim();
     const captchaInput = document.getElementById('signupCaptchaInput').value.trim();
 
-    if (!name) { showError('signupNameErr'); document.getElementById('signupName').classList.add('error'); valid = false; }
-    if (!email || !isValidEmail(email)) { showError('signupEmailErr'); document.getElementById('signupEmail').classList.add('error'); valid = false; }
-    if (!password || password.length < 8) { showError('signupPasswordErr'); document.getElementById('signupPassword').classList.add('error'); valid = false; }
-    if (!confirmPassword || password !== confirmPassword) { showError('signupConfirmPasswordErr'); document.getElementById('signupConfirmPassword').classList.add('error'); valid = false; }
-    if (!captchaInput) { showError('signupCaptchaErr','Please enter the captcha code'); valid = false; }
-    else if (captchaInput !== captchas.signup) { showError('signupCaptchaErr','Captcha does not match.'); valid = false; generateCaptcha('signup'); }
+    // validations (same as before)
+    if (!name) { showError('signupNameErr'); valid = false; }
+    if (!email || !isValidEmail(email)) { showError('signupEmailErr'); valid = false; }
+    if (!password || password.length < 8) { showError('signupPasswordErr'); valid = false; }
+    if (!confirmPassword || password !== confirmPassword) { showError('signupConfirmPasswordErr'); valid = false; }
+    if (!captchaInput || captchaInput !== captchas.signup) {
+        showError('signupCaptchaErr');
+        valid = false;
+        generateCaptcha('signup');
+    }
 
-    if (!valid) { shakeForm('signupForm'); return; }
-    showToast('Account created successfully!');
-    generateCaptcha('signup');
-    this.reset(); checkStrength('');
-    setTimeout(() => showPage('loginPage'), 1500);
+    if (!valid) {
+        shakeForm('signupForm');
+        return;
+    }
+
+    // 🔥 THIS IS THE MAIN CHANGE (CONNECT TO BACKEND)
+    fetch("http://127.0.0.1:5000/signup", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            name: name,
+            email: email,
+            password: password
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.error) {
+            showToast(data.error);
+        } else {
+            showToast("Signup successful!");
+            this.reset();
+            checkStrength('');
+            setTimeout(() => showPage('loginPage'), 1500);
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        showToast("Server error");
+    });
 });
 
 // ===== FORGOT =====
